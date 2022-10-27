@@ -48,12 +48,11 @@ if __name__ == '__main__':
     json_data = json.loads(string_data)
     counter = 0
     tweet_list = []
-    prefix = 'on Twitter: '
 
     for tweet in json_data:
         if is_valid(tweet):
             _text = html.unescape(get_text(tweet))
-            output_file.write(prefix + _text + '\n<--BREAK-->\n')
+            output_file.write(_text + '\n<--BREAK-->\n')
             split_word_count = random.randint(3, 7)
             prompt = " ".join(_text.split()[:split_word_count]) + '#->'
             completion = ' ' + " ".join(_text.split()[split_word_count:]) + '\n'

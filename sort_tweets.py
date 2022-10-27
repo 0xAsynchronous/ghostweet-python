@@ -7,9 +7,9 @@ from dateutil.parser import parse
 
 
 def read_json():
-    if len(sys.argv) != 4:
-        sys.exit('Usage: python3 extract_tweets.py [account name] [tweet.js] [output_file.txt]')
-    with open(sys.argv[2], 'r') as file:
+    if len(sys.argv) != 3:
+        sys.exit('Usage: python3 sort_tweets.py [tweet.js] [output_file.txt]')
+    with open(sys.argv[1], 'r') as file:
         _data = file.read()
         return _data[25:len(_data)]
 
@@ -24,8 +24,6 @@ def is_valid(_tweet):
         return False
     if len(_tweet['full_text'].split()) < 8:
         return False
-    if parse("Fri Dec 11 18:38:12 +0000 2020") > parse(_tweet['created_at']):
-        return False
 
     _tweet = _tweet['entities']
 
@@ -39,32 +37,32 @@ def is_valid(_tweet):
 def get_text(_tweet):
     return _tweet['tweet']['full_text']
 
+def get_date(_tweet):
+    return _tweet['tweet']['created_at']
+
 
 if __name__ == '__main__':
     # setup
-    output_file = open(sys.argv[3], 'w')
-    output_json_file = open('data.jsonl', 'w')
+    output_json_file = open(sys.argv[2], 'w')
     string_data = read_json()
     json_data = json.loads(string_data)
     counter = 0
     tweet_list = []
-    prefix = 'on Twitter: '
 
     for tweet in json_data:
         if is_valid(tweet):
             _text = html.unescape(get_text(tweet))
-            output_file.write(prefix + _text + '\n<--BREAK-->\n')
-            split_word_count = random.randint(3, 7)
-            prompt = " ".join(_text.split()[:split_word_count]) + '#->'
-            completion = ' ' + " ".join(_text.split()[split_word_count:]) + '\n'
-
-            json.dump({"prompt": prompt, "completion": completion}, output_json_file, separators=(',', ':'))
-            output_json_file.write('\n')
-
+            _date = get_date(tweet)
+            tweet_list.append({"tweet": _text, "date": _date})
             counter += 1
+
+    # sort tweets
+
+    tweet_list.sort(key=lambda x: parse(x["date"]))
+    for tweet in tweet_list:
+        json.dump({"date": tweet["date"], "tweet": tweet["tweet"]}, output_json_file, separators=(',', ':'))
+        output_json_file.write('\n')
+
     print("Total tweets: " + str(len(json_data)))
     print("Only text tweets: " + str(counter))
-    output_file.close()
     output_json_file.close()
-    yes = subprocess.Popen(["yes"], stdout=subprocess.PIPE)
-    subprocess.run(["openai", "tools", "fine_tunes.prepare_data", "-f", "data.jsonl"], stdin=yes.stdout)
